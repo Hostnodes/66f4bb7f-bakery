@@ -1,0 +1,17 @@
+# Runs the school's shared check on every pull request into main.
+# The check itself lives in the school's ci repo, pinned by tag, so the school
+# can improve it for every learner at once. Please don't change this file:
+# your mentor sees any change to it.
+
+name: Project check
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    uses: Hostnodes/ci/.github/workflows/project-check.yml@v1

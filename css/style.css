@@ -1,0 +1,7 @@
+/* Every style for the page lives here. */
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}

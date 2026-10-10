@@ -1,0 +1,16 @@
+{
+  "name": "rye-and-ember",
+  "private": true,
+  "description": "A one-page website for a neighbourhood bakery (AAcademy project).",
+  "scripts": {
+    "lint": "npm run lint:html && npm run lint:css",
+    "lint:html": "htmlhint \"*.html\"",
+    "lint:css": "stylelint \"css/**/*.css\"",
+    "test": "node tests/structure.mjs"
+  },
+  "devDependencies": {
+    "htmlhint": "^1.1.4",
+    "stylelint": "^16.10.0",
+    "stylelint-config-standard": "^36.0.1"
+  }
+}

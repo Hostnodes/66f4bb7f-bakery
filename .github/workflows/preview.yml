@@ -1,0 +1,68 @@
+# Publishes each pull request's site to GitHub Pages under pr-<number>/
+# once its check passes, so the mentor can open it.
+#
+# Safe by design (docs/architecture.md §7.3, §3): it runs from this repo's own
+# main branch (a pull request can't change it), treats the learner's build as
+# data (static files are copied, nothing is run), and finds the pull request
+# number from GitHub, never from the build.
+
+name: Preview
+
+on:
+  workflow_run:
+    workflows: [Project check]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: preview-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download the site (data only)
+        uses: actions/download-artifact@v4
+        with:
+          name: preview
+          path: preview
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Find the pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          number=$(gh api "repos/$REPO/pulls?state=open&per_page=100" --jq ".[] | select(.head.sha == \"$SHA\") | .number" | head -n1)
+          case "$number" in ''|*[!0-9]*) echo "No open pull request for $SHA."; exit 1;; esac
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to gh-pages/pr-${{ steps.pr.outputs.number }}
+        env:
+          NUMBER: ${{ steps.pr.outputs.number }}
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          git clone --quiet --depth 1 --branch gh-pages "https://x-access-token:${TOKEN}@github.com/${REPO}.git" site
+          rm -rf "site/pr-${NUMBER}"
+          mkdir -p "site/pr-${NUMBER}"
+          # Regular files only: links are dropped, nothing is executed.
+          (cd preview && find . -type f -print0 | xargs -0 -r -I{} cp --parents {} "../site/pr-${NUMBER}/")
+          find "site/pr-${NUMBER}" -type l -delete
+          cd site
+          git config user.name "aacademy-preview"
+          git config user.email "preview@users.noreply.github.com"
+          git add -A
+          git commit --quiet -m "Preview of #${NUMBER} at ${SHA}" || { echo "Nothing changed."; exit 0; }
+          git push --quiet origin gh-pages

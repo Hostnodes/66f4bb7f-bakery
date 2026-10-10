@@ -1,0 +1,31 @@
+# Removes a pull request's preview when it closes. Runs from main with the
+# pull request's number from GitHub; it never checks out the pull request.
+
+name: Preview cleanup
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove gh-pages/pr-${{ github.event.pull_request.number }}
+        env:
+          NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ github.token }}
+        run: |
+          git clone --quiet --depth 1 --branch gh-pages "https://x-access-token:${TOKEN}@github.com/${REPO}.git" site || exit 0
+          cd site
+          [ -d "pr-${NUMBER}" ] || exit 0
+          git rm -r --quiet "pr-${NUMBER}"
+          git config user.name "aacademy-preview"
+          git config user.email "preview@users.noreply.github.com"
+          git commit --quiet -m "Remove the preview of #${NUMBER}"
+          git push --quiet origin gh-pages
