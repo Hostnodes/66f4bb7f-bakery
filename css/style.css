@@ -5,3 +5,20 @@ body {
   font-family: system-ui, sans-serif;
   line-height: 1.5;
 }
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.site-nav {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
